@@ -1,7 +1,7 @@
 use crate::file::SF2;
-use crate::footer::Footer;
-use crate::rowgroup::column::Column;
-use crate::rowgroup::RowGroup;
+use crate::file::footer::Footer;
+use crate::file::rowgroup::column::Column;
+use crate::file::rowgroup::RowGroup;
 
 use std::error::Error;
 

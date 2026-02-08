@@ -1,6 +1,6 @@
 use crate::serde;
 
-pub struct Column {
+pub(crate) struct Column {
     // id: u32,
     records: Vec<String>,
 }

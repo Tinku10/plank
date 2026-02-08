@@ -3,7 +3,7 @@ pub mod column;
 use crate::serde;
 use column::Column;
 
-pub struct RowGroup {
+pub(crate) struct RowGroup {
     // id: u32,
     columns: Vec<Column>,
 }
