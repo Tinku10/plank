@@ -1,5 +1,5 @@
 pub trait Serialize {
-    fn to_string(&self) -> String;
+    fn to_bytes(&self) -> Vec<u8>;
 }
 
 trait Deserialize {

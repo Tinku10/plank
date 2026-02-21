@@ -1,5 +1,6 @@
 use crate::serde;
 
+#[derive(Debug)]
 pub(crate) struct Column {
     // id: u32,
     records: Vec<String>,
@@ -7,16 +8,19 @@ pub(crate) struct Column {
 
 impl Column {
     pub fn new(records: Vec<String>) -> Self {
-        Column {records}
+        Column { records }
     }
 }
 
 impl serde::Serialize for Column {
-    fn to_string(&self) -> String {
-        self.records
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+
+        for record in &self.records {
+            buf.extend_from_slice(record.as_bytes());
+            buf.push(b',');
+        }
+
+        buf
     }
 }

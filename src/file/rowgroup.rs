@@ -3,7 +3,8 @@ pub mod column;
 use crate::serde;
 use column::Column;
 
-pub(crate) struct RowGroup {
+#[derive(Debug)]
+pub struct RowGroup {
     // id: u32,
     columns: Vec<Column>,
 }
@@ -15,14 +16,14 @@ impl RowGroup {
 }
 
 impl serde::Serialize for RowGroup {
-    fn to_string(&self) -> String {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut v = Vec::new();
         for col in &self.columns {
-            v.push(col.to_string());
+            v.push(col.to_bytes());
         }
 
-        let mut s = v.join("\n");
-        s.push_str("\n");
+        let mut s = v.join(&b'\n');
+        s.push(b'\n');
         s
     }
 }
