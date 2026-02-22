@@ -36,7 +36,7 @@ The above encodes two rows across four columns (`first_name`, `last_name`, `age`
 The footer contains complete file metadata and is located at the end of the file. The footer offset (a little-endian `u32`) is stored in the last 5 bytes of the file (4 bytes + newline), allowing readers to seek directly to the footer without scanning the file.
 
 ```
-!SCHEMA=first_name:str|last_name:str|age:str|city:str
+!SCHEMA=first_name:str,last_name:str,age:str,city:str,
 !ROW_COUNT=<binary: u32 LE>
 !COLUMN_COUNT=<binary: u32 LE>
 !ROWGROUP_COUNT=<binary: u32 LE>
