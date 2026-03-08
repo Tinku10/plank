@@ -8,6 +8,7 @@ use crate::file::rowgroup::column::Column;
 use crate::file::rowgroup::RowGroup;
 use crate::file::PlankMeta;
 use crate::serde::Serialize;
+use crate::types::{PlankData, PlankField, PlankType};
 
 pub struct PlankWriter {
     file: BufWriter<File>,
@@ -22,7 +23,10 @@ impl PlankWriter {
     }
 
     fn write_rowgroup(&mut self, rg: &RowGroup) -> std::io::Result<u32> {
-        self.file.write_all(&rg.to_bytes())?;
+        let rg_bytes = rg.to_bytes();
+        self.file
+            .write_all(&(rg_bytes.len() as u32).to_le_bytes())?;
+        self.file.write_all(&rg_bytes);
         self.file.stream_position()?.try_into().map_err(|_| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -39,10 +43,21 @@ impl PlankWriter {
             )
         })?;
         self.file.write_all(&footer.to_bytes())?;
-        self.file.write_all(b"!FOOTER_OFFSET=")?;
         self.file.write_all(&before.to_le_bytes())?;
-        self.file.write_all(b"\n");
         Ok(())
+    }
+
+    fn infer_type(value: &str) -> PlankType {
+        if value.parse::<i32>().is_ok() {
+            return PlankType::Int32;
+        }
+        if value.parse::<i64>().is_ok() {
+            return PlankType::Int64;
+        }
+        if value.parse::<bool>().is_ok() {
+            return PlankType::Bool;
+        }
+        PlankType::Str
     }
 
     pub fn write_from_csv<P: AsRef<Path>>(&mut self, input: P) -> std::io::Result<()> {
@@ -50,11 +65,21 @@ impl PlankWriter {
         let mut offsets = Vec::new();
         let mut curr_offset = 0;
 
-        let schema = reader
+        let first_record = &reader.records().next().transpose()?;
+
+        let schema: Vec<PlankField> = reader
             .headers()?
             .iter()
-            .map(|s| (s.to_string(), "str".to_string()))
-            .collect::<Vec<(String, String)>>();
+            .enumerate()
+            .map(|(i, header)| {
+                let plank_type = first_record
+                    .as_ref()
+                    .and_then(|r| r.get(i))
+                    .map(Self::infer_type)
+                    .unwrap_or(PlankType::Str);
+                PlankField::new(header, plank_type)
+            })
+            .collect();
 
         let col_count = schema.len() as u32;
         let mut row_count = 0u32;
@@ -66,9 +91,21 @@ impl PlankWriter {
 
             for row in chunk {
                 let row = row?;
-                for i in 0..schema.len() {
-                    let item = row[i].to_string();
-                    row_group[i].push(item);
+                for (i, field) in schema.iter().enumerate() {
+                    let item = &row[i];
+                    let data = match field.field_type() {
+                        PlankType::Int32 => PlankData::Int32(item.parse().map_err(|_| {
+                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i32")
+                        })?),
+                        PlankType::Int64 => PlankData::Int64(item.parse().map_err(|_| {
+                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i64")
+                        })?),
+                        PlankType::Bool => PlankData::Bool(item.parse().map_err(|_| {
+                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid bool")
+                        })?),
+                        PlankType::Str => PlankData::Str(item.to_string()),
+                    };
+                    row_group[i].push(data);
                 }
                 row_count += 1;
             }
@@ -90,7 +127,13 @@ impl PlankWriter {
         // This will be used to know the byte size of any rowgroup N (offsets[N + 1] - offsets[N])
         offsets.push(curr_offset);
 
-        let footer = Footer::new(schema, offsets, row_count, col_count, row_groups.len() as u32);
+        let footer = Footer::new(
+            schema,
+            offsets,
+            row_count,
+            col_count,
+            row_groups.len() as u32,
+        );
         self.write_footer(&footer)?;
 
         Ok(())

@@ -24,25 +24,32 @@ impl serde::Serialize for RowGroup {
     fn to_bytes(&self) -> Vec<u8> {
         let mut v = Vec::new();
         for col in &self.columns {
-            v.push(col.to_bytes());
+            let column_bytes = col.to_bytes();
+            v.extend_from_slice(&(column_bytes.len() as u32).to_le_bytes());
+            v.extend_from_slice(&column_bytes);
         }
 
-        let mut s = v.join(&b'\n');
-        s.push(b'\n');
-        s
+        v
     }
 }
 
 impl serde::Deserialize for RowGroup {
     fn from_bytes(bytes: &[u8]) -> std::io::Result<Self> {
         let mut br = BufReader::new(Cursor::new(bytes));
-
         let mut columns = Vec::new();
 
-        while !br.fill_buf()?.is_empty() {
-            let mut line = String::new();
-            br.read_line(&mut line)?;
-            columns.push(Column::from_bytes(line.as_bytes())?);
+        let mut pos = 0;
+
+        while pos + 4 < bytes.len() {
+            let size = u32::from_le_bytes(bytes[pos..pos + 4].try_into().map_err(
+                |_| std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
+            )?) as usize;
+
+            pos += 4;
+
+            columns.push(Column::from_bytes(&bytes[pos..pos + size])?);
+
+            pos += size;
         }
 
         Ok(RowGroup {columns})

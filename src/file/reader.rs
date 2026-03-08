@@ -8,6 +8,7 @@ use crate::file::rowgroup::column::Column;
 use crate::file::rowgroup::RowGroup;
 use crate::file::PlankMeta;
 use crate::serde::Deserialize;
+use crate::types::{PlankData, PlankField, PlankType};
 
 pub struct PlankReader {
     file: BufReader<File>,
@@ -26,33 +27,18 @@ pub struct RowIterator {
 }
 
 impl PlankReader {
-    fn parse_schema(line: &str) -> Vec<(String, String)> {
-        line.trim()
-            .split(',')
-            .filter_map(|item| {
-                let mut it = item.split(':');
-                match (it.next(), it.next()) {
-                    (Some(col), Some(ty)) => Some((col.to_string(), ty.to_string())),
-                    _ => None,
-                }
-            })
-            .collect()
+    fn parse_schema(bytes: &[u8]) -> std::io::Result<Vec<PlankField>> {
+        Footer::parse_schema(bytes)
     }
 
-    fn parse_offsets(bytes: &Vec<u8>) -> Vec<u32> {
-        let mut v = Vec::new();
-        for chunk in bytes.chunks_exact(4) {
-            v.push(u32::from_le_bytes(chunk.try_into().unwrap()));
-        }
-        v
+    fn parse_offsets(bytes: &[u8]) -> std::io::Result<Vec<u32>> {
+        Footer::parse_offsets(bytes)
     }
 
     pub fn open<P: AsRef<Path>>(file_path: P) -> std::io::Result<Self> {
         let mut f = File::open(file_path)?;
-        // TODO: Check if file ends in newline
-
-        // Footer offset for u32 including one byte for newline
-        f.seek(SeekFrom::End(-5))?;
+        // Footer offset f;or u32
+        f.seek(SeekFrom::End(-4))?;
 
         let mut footer_offset = [0u8; 4];
         f.read_exact(&mut footer_offset)?;
@@ -73,7 +59,7 @@ impl PlankReader {
         Ok(Self { file: br, meta })
     }
 
-    pub fn get_schema(&self) -> &Vec<(String, String)> {
+    pub fn get_schema(&self) -> &Vec<PlankField> {
         &self.meta.footer.schema()
     }
 
@@ -114,7 +100,12 @@ impl<'a> Iterator for RowGroupIterator<'a> {
         // Parse col_count lines
         let col_count = meta.footer.col_count() as usize;
 
-        let row_group_size = self.offsets[self.index + 1] - self.offsets[self.index];
+        // let row_group_size = self.offsets[self.index + 1] - self.offsets[self.index];
+
+        let mut buf = [0u8; 4];
+        br.read_exact(&mut buf);
+
+        let row_group_size = u32::from_le_bytes(buf);
 
         let mut buf = vec![0u8; row_group_size as usize];
         br.read(&mut buf);
@@ -125,7 +116,7 @@ impl<'a> Iterator for RowGroupIterator<'a> {
 }
 
 impl Iterator for RowIterator {
-    type Item = std::io::Result<Vec<String>>;
+    type Item = std::io::Result<Vec<PlankData>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let columns = self.row_group.as_ref()?.columns();
@@ -134,7 +125,7 @@ impl Iterator for RowIterator {
             return None;
         }
 
-        let row: Vec<String> = columns
+        let row: Vec<PlankData> = columns
             .iter()
             .map(|col| col.records()[self.row].clone())
             .collect();
@@ -159,7 +150,7 @@ impl<'a> IntoIterator for &'a mut PlankReader {
 }
 
 impl IntoIterator for RowGroup {
-    type Item = std::io::Result<Vec<String>>;
+    type Item = std::io::Result<Vec<PlankData>>;
     type IntoIter = RowIterator;
 
     fn into_iter(self) -> Self::IntoIter {

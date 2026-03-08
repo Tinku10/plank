@@ -4,6 +4,7 @@ pub(crate) mod rowgroup;
 pub mod writer;
 
 use footer::Footer;
+use crate::types::PlankField;
 
 #[derive(Debug)]
 pub struct PlankMeta {
@@ -11,7 +12,7 @@ pub struct PlankMeta {
 }
 
 impl PlankMeta {
-    pub fn schema(&self) -> &Vec<(String, String)> {
+    pub fn schema(&self) -> &Vec<PlankField> {
         self.footer.schema()
     }
 

@@ -3,12 +3,16 @@
 
 mod file;
 mod serde;
+mod types;
 
-use crate::file::reader::SF2Reader;
-use crate::file::writer::SF2Writer;
+use crate::file::reader::PlankReader;
+use crate::file::writer::PlankWriter;
 
 fn main() {
-    let mut f = SF2Reader::open("./data/100.sf2").unwrap();
+    // let mut f = PlankWriter::new("./data/addresses.plank").unwrap();
+    // f.write_from_csv("./data/addresses.csv").unwrap();
+
+    let mut f = PlankReader::open("./data/addresses.plank").unwrap();
 
     for rg in &mut f {
         if let Ok(rg) = rg {
@@ -17,7 +21,4 @@ fn main() {
             }
         }
     }
-
-    // let mut f = SF2Writer::new("./data/100.sf2").unwrap();
-    // f.write_from_csv("./data/100.csv").unwrap();
 }

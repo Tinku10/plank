@@ -1,17 +1,19 @@
 use crate::serde;
+use crate::types::{PlankType, PlankData, PlankField};
+use crate::serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Column {
     // id: u32,
-    records: Vec<String>,
+    records: Vec<PlankData>,
 }
 
 impl Column {
-    pub fn new(records: Vec<String>) -> Self {
+    pub fn new(records: Vec<PlankData>) -> Self {
         Column { records }
     }
 
-    pub fn records(&self) -> &Vec<String> {
+    pub fn records(&self) -> &Vec<PlankData> {
         &self.records
     }
 }
@@ -21,8 +23,7 @@ impl serde::Serialize for Column {
         let mut buf = Vec::new();
 
         for record in &self.records {
-            buf.extend_from_slice(record.as_bytes());
-            buf.push(0x1F);
+            buf.extend_from_slice(&record.to_bytes());
         }
 
         buf
@@ -31,11 +32,15 @@ impl serde::Serialize for Column {
 
 impl serde::Deserialize for Column {
     fn from_bytes(bytes: &[u8]) -> std::io::Result<Self> {
-        let mut records = String::from_utf8_lossy(bytes)
-            .split('\x1F')
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
-        records.pop();
-        Ok(Column { records })
+        let mut pos = 0;
+        let mut v = Vec::new();
+        while pos < bytes.len() {
+            let item = PlankData::from_bytes(&bytes[pos..])?;
+            let size = item.to_bytes().len();
+            pos += size;
+            v.push(item);
+        }
+
+        Ok(Column {records: v})
     }
 }
