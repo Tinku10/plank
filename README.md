@@ -62,6 +62,7 @@ The following types are supported yet.
 - `Int64`
 - `Bool`
 - `Struct`: Supports fields of any of the supported types
+- `List`: A homogeneous list of items (homogeneity is not yet enforced)
 
 ## Usage
 
