@@ -268,6 +268,33 @@ impl fmt::Display for PlankType {
     }
 }
 
+impl fmt::Display for PlankData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Str(s) => write!(f, "'{}'", s),
+            Self::Int32(n) => write!(f, "{}", n),
+            Self::Int64(n) => write!(f, "{}", n),
+            Self::Bool(b) => write!(f, "{}", b),
+            Self::Struct(fields) => {
+                write!(f, "{{")?;
+                for (i, field) in fields.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", field)?;
+                }
+                write!(f, "}}")
+            }
+            Self::List(items) => {
+                write!(f, "[")?;
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "]")
+            }
+        }
+    }
+}
+
 impl Serialize for PlankType {
     fn to_bytes(&self) -> Vec<u8> {
         let id: u8 = match self {
