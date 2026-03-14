@@ -101,9 +101,9 @@ impl Footer {
     }
 
     fn parse_count(bytes: &[u8]) -> std::io::Result<u32> {
-        Ok(u32::from_le_bytes(bytes[..4].try_into().map_err(
-            |_| std::io::Error::new(std::io::ErrorKind::InvalidData, "expected bytes to be u32")
-        )?))
+        Ok(u32::from_le_bytes(bytes[..4].try_into().map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "expected bytes to be u32")
+        })?))
     }
 
     pub fn parse_schema(bytes: &[u8]) -> std::io::Result<Vec<PlankField>> {
@@ -124,9 +124,9 @@ impl Footer {
 
             pos += size as usize;
 
-            let field_type = PlankType::from_bytes(&bytes[pos..pos + 1])?;
+            let field_type = PlankType::from_bytes(&bytes[pos..], &())?;
 
-            pos += 1;
+            pos += field_type.encoded_size();
 
             v.push(PlankField::new(field_name, field_type))
         }
@@ -137,7 +137,9 @@ impl Footer {
     pub fn parse_offsets(bytes: &[u8]) -> std::io::Result<Vec<u32>> {
         let mut v = Vec::new();
         for chunk in bytes.chunks_exact(4) {
-            v.push(u32::from_le_bytes(chunk.try_into().map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32"))?));
+            v.push(u32::from_le_bytes(chunk.try_into().map_err(|_| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
+            })?));
         }
         Ok(v)
     }
@@ -176,8 +178,9 @@ impl Serialize for Footer {
     }
 }
 
-impl Deserialize for Footer {
-    fn from_bytes(bytes: &[u8]) -> std::io::Result<Self> {
+impl<'a> Deserialize<'a> for Footer {
+    type Schema = ();
+    fn from_bytes(bytes: &[u8], _: &'a Self::Schema) -> std::io::Result<Self> {
         let mut br = BufReader::new(Cursor::new(bytes));
         let before = br.stream_position()?;
 

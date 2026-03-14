@@ -44,6 +44,7 @@ impl PlankReader {
         f.read_exact(&mut footer_offset)?;
 
         let footer_offset = u32::from_le_bytes(footer_offset);
+        // println!("{} reader", footer_offset);
 
         f.seek(SeekFrom::Start(footer_offset as u64))?;
 
@@ -52,7 +53,7 @@ impl PlankReader {
         let mut footer_buf = Vec::new();
         br.read_to_end(&mut footer_buf);
 
-        let footer = Footer::from_bytes(&footer_buf)?;
+        let footer = Footer::from_bytes(&footer_buf, &())?;
 
         let meta = PlankMeta { footer };
 
@@ -80,38 +81,26 @@ impl<'a> Iterator for RowGroupIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let br = &mut self.reader.file;
         let meta = &self.reader.meta;
-        let col_count = meta.footer.col_count() as usize;
 
         if self.index as u32 >= meta.footer.row_group_count() {
             return None;
         }
 
-        // TODO: Find a way to cast the data to the correct types
-        // This is not the right place to cast it, but the stored type should be created in a way
-        // to support it
-        // self.curr_row_group = self.parse_rowgroup().ok();
-        // Not what I want, but there seems to be no good way to store the current rowgroup and
-        // return a reference to it
-        // Some(Ok(self.curr_row_group.clone()?))
-        let br = &mut self.reader.file;
-        let meta = &self.reader.meta;
         // Go to the beginning of the row group
         br.seek(SeekFrom::Start(self.offsets[self.index] as u64));
-        // Parse col_count lines
-        let col_count = meta.footer.col_count() as usize;
-
-        // let row_group_size = self.offsets[self.index + 1] - self.offsets[self.index];
 
         let mut buf = [0u8; 4];
         br.read_exact(&mut buf);
 
         let row_group_size = u32::from_le_bytes(buf);
 
+        // Not good, I should instead return a iterator that can read the row group on demand
         let mut buf = vec![0u8; row_group_size as usize];
         br.read(&mut buf);
 
         self.index += 1;
-        Some(RowGroup::from_bytes(&buf))
+
+        Some(RowGroup::from_bytes(&buf, meta.schema()))
     }
 }
 

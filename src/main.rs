@@ -9,10 +9,14 @@ use crate::file::reader::PlankReader;
 use crate::file::writer::PlankWriter;
 
 fn main() {
-    // let mut f = PlankWriter::new("./data/addresses.plank").unwrap();
-    // f.write_from_csv("./data/addresses.csv").unwrap();
+    {
+        let mut f = PlankWriter::new("./data/addresses.plank").unwrap();
+        f.write_from_csv("./data/addresses.csv").unwrap();
+    }
 
     let mut f = PlankReader::open("./data/addresses.plank").unwrap();
+
+    println!("{:#?}", f.get_schema());
 
     for rg in &mut f {
         if let Ok(rg) = rg {

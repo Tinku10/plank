@@ -1,6 +1,7 @@
 pub mod column;
 
 use crate::serde;
+use crate::types::PlankField;
 use column::Column;
 use std::io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 
@@ -33,26 +34,31 @@ impl serde::Serialize for RowGroup {
     }
 }
 
-impl serde::Deserialize for RowGroup {
-    fn from_bytes(bytes: &[u8]) -> std::io::Result<Self> {
+impl<'a> serde::Deserialize<'a> for RowGroup {
+    type Schema = Vec<PlankField>;
+    fn from_bytes(bytes: &[u8], schema: &'a Self::Schema) -> std::io::Result<Self> {
         let mut br = BufReader::new(Cursor::new(bytes));
         let mut columns = Vec::new();
 
         let mut pos = 0;
+        let mut schema_id = 0;
 
         while pos + 4 < bytes.len() {
-            let size = u32::from_le_bytes(bytes[pos..pos + 4].try_into().map_err(
-                |_| std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
-            )?) as usize;
+            let size = u32::from_le_bytes(bytes[pos..pos + 4].try_into().map_err(|_| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
+            })?) as usize;
 
             pos += 4;
 
-            columns.push(Column::from_bytes(&bytes[pos..pos + size])?);
+            columns.push(Column::from_bytes(
+                &bytes[pos..pos + size],
+                &schema[schema_id],
+            )?);
+            schema_id += 1;
 
             pos += size;
         }
 
-        Ok(RowGroup {columns})
-
+        Ok(RowGroup { columns })
     }
 }

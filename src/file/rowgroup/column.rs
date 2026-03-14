@@ -1,6 +1,6 @@
 use crate::serde;
-use crate::types::{PlankType, PlankData, PlankField};
-use crate::serde::{Serialize, Deserialize};
+use crate::serde::{Deserialize, Serialize};
+use crate::types::{PlankData, PlankField, PlankType};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Column {
@@ -30,17 +30,18 @@ impl serde::Serialize for Column {
     }
 }
 
-impl serde::Deserialize for Column {
-    fn from_bytes(bytes: &[u8]) -> std::io::Result<Self> {
+impl<'a> serde::Deserialize<'a> for Column {
+    type Schema = PlankField;
+    fn from_bytes(bytes: &[u8], schema: &'a Self::Schema) -> std::io::Result<Self> {
         let mut pos = 0;
         let mut v = Vec::new();
         while pos < bytes.len() {
-            let item = PlankData::from_bytes(&bytes[pos..])?;
+            let item = PlankData::from_bytes(&bytes[pos..], schema)?;
             let size = item.to_bytes().len();
             pos += size;
             v.push(item);
         }
 
-        Ok(Column {records: v})
+        Ok(Column { records: v })
     }
 }

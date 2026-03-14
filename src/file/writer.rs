@@ -43,22 +43,26 @@ impl PlankWriter {
             )
         })?;
         self.file.write_all(&footer.to_bytes())?;
+        // println!("{}////", before);
         self.file.write_all(&before.to_le_bytes())?;
         Ok(())
     }
 
-    fn infer_type(value: &str) -> PlankType {
-        if value.parse::<i32>().is_ok() {
-            return PlankType::Int32;
-        }
-        if value.parse::<i64>().is_ok() {
-            return PlankType::Int64;
-        }
-        if value.parse::<bool>().is_ok() {
-            return PlankType::Bool;
-        }
-        PlankType::Str
-    }
+    // fn infer_type(value: &str) -> PlankType {
+    //     if value.parse::<i32>().is_ok() {
+    //         return PlankType::Int32;
+    //     }
+    //     if value.parse::<i64>().is_ok() {
+    //         return PlankType::Int64;
+    //     }
+    //     if value.parse::<bool>().is_ok() {
+    //         return PlankType::Bool;
+    //     }
+    //     if PlankData::parse_struct(value).is_ok() {
+    //         return PlankType::from(&PlankData::parse_struct(value).unwrap())
+    //     }
+    //     PlankType::Str
+    // }
 
     pub fn write_from_csv<P: AsRef<Path>>(&mut self, input: P) -> std::io::Result<()> {
         let mut reader = csv::Reader::from_path(input).unwrap();
@@ -75,11 +79,13 @@ impl PlankWriter {
                 let plank_type = first_record
                     .as_ref()
                     .and_then(|r| r.get(i))
-                    .map(Self::infer_type)
+                    .map(PlankType::infer_type)
                     .unwrap_or(PlankType::Str);
                 PlankField::new(header, plank_type)
             })
             .collect();
+
+        // println!(">>>>>>>>>>>>{:?}>>>>>>>>>>>", schema);
 
         let col_count = schema.len() as u32;
         let mut row_count = 0u32;
@@ -93,23 +99,27 @@ impl PlankWriter {
                 let row = row?;
                 for (i, field) in schema.iter().enumerate() {
                     let item = &row[i];
-                    let data = match field.field_type() {
-                        PlankType::Int32 => PlankData::Int32(item.parse().map_err(|_| {
-                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i32")
-                        })?),
-                        PlankType::Int64 => PlankData::Int64(item.parse().map_err(|_| {
-                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i64")
-                        })?),
-                        PlankType::Bool => PlankData::Bool(item.parse().map_err(|_| {
-                            std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid bool")
-                        })?),
-                        PlankType::Str => PlankData::Str(item.to_string()),
-                    };
-                    row_group[i].push(data);
+                    // item.parse()
+                    // let data = match field.field_type() {
+
+                    //     PlankType::Int32 => PlankData::Int32(item.parse().map_err(|_| {
+                    //         std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i32")
+                    //     })?),
+                    //     PlankType::Int64 => PlankData::Int64(item.parse().map_err(|_| {
+                    //         std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid i64")
+                    //     })?),
+                    //     PlankType::Bool => PlankData::Bool(item.parse().map_err(|_| {
+                    //         std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid bool")
+                    //     })?),
+                    //     PlankType::Struct(fields) => PlankData::Struct(item.parse().map_err(|_| {
+                    //         std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid struct")
+                    //     })?)
+                    //     PlankType::Str => PlankData::Str(item.to_string()),
+                    // };
+                    row_group[i].push(item.parse::<PlankData>()?);
                 }
                 row_count += 1;
             }
-
             let mut columns = Vec::new();
             for rg in row_group {
                 columns.push(Column::new(rg));
