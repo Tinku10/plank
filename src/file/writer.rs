@@ -83,7 +83,7 @@ impl PlankWriter {
                 let row = row?;
                 for (i, field) in schema.iter().enumerate() {
                     let item = &row[i];
-                    row_group[i].push(item.parse::<PlankData>()?);
+                    row_group[i].push(PlankData::parse(item, field.field_type())?);
                 }
                 row_count += 1;
             }
