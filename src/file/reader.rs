@@ -64,6 +64,10 @@ impl PlankReader {
         &self.meta.footer.schema()
     }
 
+    pub fn meta(&self) -> &PlankMeta {
+        &self.meta
+    }
+
     // pub fn iter(self) -> RowGroupIterator<'_> {
     //     let offsets = self.meta.footer.offsets().clone();
     //     RowGroupIterator {

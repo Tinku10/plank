@@ -25,6 +25,10 @@ impl PlankField {
         &self.field_type
     }
 
+    pub fn field_name(&self) -> &String {
+        &self.name
+    }
+
     pub fn from_value(name: &str, value: &str) -> Self {
         let field_type = if value.parse::<i32>().is_ok() {
             PlankType::Int32

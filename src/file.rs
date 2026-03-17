@@ -23,4 +23,8 @@ impl PlankMeta {
     pub fn row_count(&self) -> u32 {
         self.footer.row_count()
     }
+
+    pub fn row_group_count(&self) -> u32 {
+        self.footer.row_group_count()
+    }
 }

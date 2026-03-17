@@ -75,6 +75,7 @@ impl PlankWriter {
         let mut row_count = 0u32;
 
         let mut row_groups = Vec::new();
+        let mut row_group_id = 0;
 
         for chunk in &records.chunks(footer::ROWGROUP_SIZE) {
             let mut row_group = vec![Vec::new(); schema.len()];
@@ -92,7 +93,8 @@ impl PlankWriter {
                 columns.push(Column::new(rg));
             }
 
-            row_groups.push(RowGroup::new(columns));
+            row_groups.push(RowGroup::new(row_group_id, columns));
+            row_group_id += 1;
         }
 
         for rg in &row_groups {
