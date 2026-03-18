@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 use std::fmt::Write;
 use std::io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 
-pub(crate) const ROWGROUP_SIZE: usize = 10;
 const PLANK_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug)]

@@ -89,18 +89,18 @@ let mut f = PlankWriter::new("/path/to/file.plank")?;
 f.write_from_csv("/path/to/file.csv")?;
 ```
 
----
-
-### Reading using the new Query API
+### Reading specific row groups with selected columns
 
 ```rust
 let mut f = PlankReader::open("./data/file.plank").unwrap();
 
 // Read columns 0 and 1 from RowGroup 0
-let result = f.read_row_group_columns(0, &vec![0, 1]).unwrap();
+let result = f.read_row_group_columns(0, &vec!["name", "age"]).unwrap();
 
 println!("{:#?}, ", result);
 ```
+
+---
 
 ## Possible Improvements
 
