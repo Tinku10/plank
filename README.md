@@ -11,17 +11,19 @@ Plank files are organized into two sections: **row groups**, and a **footer**.
 ### Layout
 
 ```
-[row group-1 size]
-    [column-1 size]
-        [data size]?[data]
-    [column-2]
-    ...
-    [column-n]
+[row group-1 size: 4 bytes]
+    [row group id: 4 bytes]
+        [column-1 size: 4 bytes]
+            [data size: 4 bytes]?[data]
+        [column-2]
+        ...
+        [column-n]
+    [row count: 4 bytes]
 [row group-2]
 ...
 [row group-n]
 [schema size]
-    [field-1 name size][field-1 name][field-1 type]
+    [field-1 name size: 4 bytes][field-1 name][field-1 type]
     [field-2]
     ...
     [field-n]

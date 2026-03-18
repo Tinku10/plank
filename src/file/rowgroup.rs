@@ -7,29 +7,22 @@ use std::io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 
 #[derive(Debug, Clone)]
 pub struct RowGroup {
-    // id: u32,
     pub(crate) id: u32,
     pub(crate) columns: Vec<Column>,
+    pub(crate) row_count: u32,
 }
 
 impl RowGroup {
-    pub fn new(id: u32, columns: Vec<Column>) -> Self {
-        RowGroup { id, columns }
-    }
-
-    pub fn columns(&self) -> &Vec<Column> {
-        &self.columns
-    }
-
-    pub fn id(&self) -> u32 {
-        self.id
+    pub fn new(id: u32, columns: Vec<Column>, row_count: u32) -> Self {
+        RowGroup { id, columns, row_count }
     }
 }
 
 impl serde::Serialize for RowGroup {
     fn to_bytes(&self) -> Vec<u8> {
         let mut v = Vec::new();
-        v.extend_from_slice(&self.id().to_le_bytes());
+        v.extend_from_slice(&self.id.to_le_bytes());
+        v.extend_from_slice(&self.row_count.to_le_bytes());
 
         for col in &self.columns {
             let column_bytes = col.to_bytes();
@@ -51,7 +44,11 @@ impl<'a> serde::Deserialize<'a> for RowGroup {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
         })?);
 
-        let mut pos = 4;
+        let row_count = u32::from_le_bytes(bytes[4..8].try_into().map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "expected u32")
+        })?);
+
+        let mut pos = 8;
         let mut schema_id = 0;
 
         while pos + 4 < bytes.len() {
@@ -70,6 +67,6 @@ impl<'a> serde::Deserialize<'a> for RowGroup {
             pos += size;
         }
 
-        Ok(RowGroup { id, columns })
+        Ok(RowGroup { id, columns, row_count })
     }
 }

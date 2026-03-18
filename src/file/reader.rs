@@ -18,7 +18,7 @@ pub struct PlankReader {
 pub struct RecordBatch {
     schema: Vec<PlankField>,
     columns: Vec<Column>,
-    row_count: usize,
+    row_count: u32,
 }
 
 pub struct RowGroupIterator<'a> {
@@ -105,7 +105,7 @@ impl PlankReader {
         Ok(RecordBatch {
             schema: self.footer.schema.clone(),
             columns: rg.columns,
-            row_count: 0,
+            row_count: rg.row_count,
         })
     }
 
@@ -123,7 +123,7 @@ impl PlankReader {
                 .iter()
                 .map(|&i| std::mem::replace(&mut columns[i], Column::default()))
                 .collect(),
-            row_count: 0,
+            row_count: rg.row_count,
         })
     }
 }
@@ -142,7 +142,7 @@ impl Iterator for RowIterator {
     type Item = std::io::Result<Vec<PlankData>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let columns = self.row_group.as_ref()?.columns();
+        let columns = &self.row_group.as_ref()?.columns;
 
         if self.row >= columns[0].records.len() {
             return None;
