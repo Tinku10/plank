@@ -17,9 +17,9 @@ pub struct PlankReader {
 
 #[derive(Debug)]
 pub struct RecordBatch {
-    schema: Vec<PlankField>,
-    columns: Vec<Column>,
-    row_count: u32,
+    pub schema: Vec<PlankField>,
+    pub columns: Vec<Column>,
+    pub row_count: u32,
 }
 
 pub struct RowGroupIterator<'a> {
@@ -58,7 +58,7 @@ impl PlankReader {
         let mut br = BufReader::new(f);
 
         let mut footer_buf = Vec::new();
-        br.read_to_end(&mut footer_buf);
+        br.read_to_end(&mut footer_buf)?;
 
         let footer = Footer::from_bytes(&footer_buf, &())?;
 
