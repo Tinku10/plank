@@ -190,10 +190,11 @@ impl<'a> Deserialize<'a> for PlankData {
                 Ok(PlankData::Int64(n))
             }
             PlankType::Bool => {
-                let b = bytes[0].try_into().map_err(|_| {
-                    std::io::Error::new(std::io::ErrorKind::InvalidData, "expected bool")
-                })?;
-                Ok(PlankData::Bool(b))
+                match bytes[0] {
+                    0 => Ok(PlankData::Bool(false)),
+                    1 => Ok(PlankData::Bool(true)),
+                    _ => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "expected bool"))
+                }
             }
             PlankType::Struct(fields) => {
                 let size = u32::from_le_bytes(bytes[..4].try_into().map_err(|_| {

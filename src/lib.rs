@@ -1,6 +1,3 @@
-#![feature(bufreader_peek)]
-#![feature(iter_array_chunks)]
-
 mod file;
 // mod query;
 mod serde;
